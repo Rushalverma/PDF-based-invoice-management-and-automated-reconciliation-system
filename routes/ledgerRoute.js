@@ -4,11 +4,12 @@ const multer = require('multer');
 const path = require('path');
 const ledgerController = require('../controller/ledgerController');
 const authMiddleware = require('../middleware/authMiddleware');
+const { uploadDirs } = require('../config/env');
 
 // ─── Multer setup for ledger file uploads ────────────────────────────────────
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, './uploads/invoices/');
+        cb(null, uploadDirs.invoices);
     },
     filename: function (req, file, cb) {
         // Same naming convention as invoiceRoute: originalName-timestamp.ext

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import useAuthStore from '../../../store/useAuthStore';
 import './DashboardPage.css';
+import { apiUrl } from '../../../utils/api';
 
 /* SVG Icons */
 const TrendingUpIcon = () => (
@@ -110,7 +111,7 @@ export function DashboardPage() {
 
       try {
         const businessParam = user?.lastActiveBusinessId ? `?businessId=${user.lastActiveBusinessId}` : '';
-        const response = await fetch(`http://localhost:8085/api/v1/stats/dashboard-stats${businessParam}`, {
+        const response = await fetch(apiUrl(`/stats/dashboard-stats${businessParam}`), {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

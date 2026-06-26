@@ -40,19 +40,13 @@ Better Comments by Aaron Bond
 
 	 npm install
 
-2. Configure environment variables in .env:
-
-	 PORT=8080
-	 JWT_SECRET=your_secret
-	 MYSQL_HOST=localhost
-	 MYSQL_PORT=3306
-	 MYSQL_USER=root
-	 MYSQL_PASSWORD=your_password
-	 MYSQL_DATABASE=invoice_management
+2. Configure environment variables using `.env.example`.
 
 3. Start the server:
 
 	 node server.js
+
+For production deployment, see [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## API Endpoints
 

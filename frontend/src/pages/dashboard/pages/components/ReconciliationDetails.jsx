@@ -2,6 +2,7 @@ import { useParams } from "react-router-dom";
 import "./ReconciliationDetails.css";
 import { useState, useEffect, useRef, useCallback } from "react";
 import useAuthStore from "../../../../store/useAuthStore";
+import { apiUrl } from '../../../../utils/api';
 
 /* ─── helpers ─── */
 const formatCurrency = (val) => {
@@ -64,10 +65,7 @@ export function ReconciliationDetails() {
         (async () => {
             try {
                 setLoading(true); setError('');
-                const res  = await fetch(
-                    `http://localhost:8085/api/v1/reconciliation/results/${reconId}`,
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
+                const res  = await fetch(apiUrl(`/reconciliation/results/${reconId}`), { headers: { Authorization: `Bearer ${token}` } });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.message || 'Failed');
                 setResults(data.results || []);

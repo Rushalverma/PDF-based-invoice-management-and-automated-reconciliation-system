@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import useAuthStore from "../../../../store/useAuthStore";
 import "./LedgerDetails.css";
+import { apiUrl } from '../../../../utils/api';
 
 export function LedgerDetails() {
     const { id } = useParams();
@@ -13,15 +14,13 @@ export function LedgerDetails() {
     const [files, setFiles] = useState([]);
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState("");
-    const API = "http://localhost:8085/api/v1";
-
     /* ── Fetch records ── */
     useEffect(() => {
         const fetchRecords = async () => {
             if (!token) return;
             try {
                 setLoading(true);
-                const response = await fetch(`${API}/ledger/${id}/records`, {
+                const response = await fetch(apiUrl(`/ledger/${id}/records`), {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 const data = await response.json();
@@ -59,7 +58,7 @@ export function LedgerDetails() {
         );
         if (!token) return;
         try {
-            await fetch(`${API}/ledger/record/${recordId}`, {
+            await fetch(apiUrl(`/ledger/record/${recordId}`), {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",

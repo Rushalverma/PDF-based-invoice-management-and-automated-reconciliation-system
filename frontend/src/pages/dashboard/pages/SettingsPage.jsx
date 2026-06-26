@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './SettingsPage.css';
 import useAuthStore from "./../../../store/useAuthStore";
-
-const API_BASE_URL = 'http://localhost:8085/api/v1';
+import { apiUrl } from '../../../utils/api';
 
 export function SettingsPage() {
 
@@ -26,7 +25,7 @@ export function SettingsPage() {
         const fetchData = async () => {
             if (!token) return;
             try {
-                const res = await fetch(`${API_BASE_URL}/settings/data`, {
+                const res = await fetch(apiUrl('/settings/data'), {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
@@ -54,7 +53,7 @@ export function SettingsPage() {
     const handleUpdateUsername = async () => {
         if (!newUsername) return;
         try {
-            const res = await fetch(`${API_BASE_URL}/settings/username`, {
+            const res = await fetch(apiUrl('/settings/username'), {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -74,7 +73,7 @@ export function SettingsPage() {
     const handleDeleteAccount = async () => {
         if (window.confirm("Are you sure you want to permanently delete your account?")) {
             try {
-                const res = await fetch(`${API_BASE_URL}/settings/account`, {
+                const res = await fetch(apiUrl('/settings/account'), {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -90,7 +89,7 @@ export function SettingsPage() {
     const handleAddBusiness = async () => {
         if (!newBusinessName) return;
         try {
-            const res = await fetch(`${API_BASE_URL}/settings/business`, {
+            const res = await fetch(apiUrl('/settings/business'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -117,7 +116,7 @@ export function SettingsPage() {
     const handleDeleteBusiness = async (id) => {
         if (window.confirm("Are you sure? This will delete the business and all linked bank accounts.")) {
             try {
-                const res = await fetch(`${API_BASE_URL}/settings/business/${id}`, {
+                const res = await fetch(apiUrl(`/settings/business/${id}`), {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -143,7 +142,7 @@ export function SettingsPage() {
     const handleAddBankAccount = async () => {
         if (!newBankDetails.bank_name || !selectedBusinessId) return;
         try {
-            const res = await fetch(`${API_BASE_URL}/settings/bank-account`, {
+            const res = await fetch(apiUrl('/settings/bank-account'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -172,7 +171,7 @@ export function SettingsPage() {
 
     const handleDeleteBankAccount = async (id) => {
         try {
-            const res = await fetch(`${API_BASE_URL}/settings/bank-account/${id}`, {
+            const res = await fetch(apiUrl(`/settings/bank-account/${id}`), {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });

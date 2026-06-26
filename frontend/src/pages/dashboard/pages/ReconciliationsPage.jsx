@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { CreateReconcilationsModel } from "./components/CreateReconciliationModel";
 import useAuthStore from '../../../store/useAuthStore';
+import { apiUrl } from '../../../utils/api';
 
 const MONTHS = [
     '', 'January', 'February', 'March', 'April', 'May', 'June',
@@ -30,7 +31,7 @@ export function ReconciliationsPage() {
         try {
             setLoading(true);
             setError('');
-            const res  = await fetch('http://localhost:8085/api/v1/reconciliation/', {
+            const res  = await fetch(apiUrl('/reconciliation/'), {
                 headers: { Authorization: `Bearer ${token}` }
             });
             const data = await res.json();

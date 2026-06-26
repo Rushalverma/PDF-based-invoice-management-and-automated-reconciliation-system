@@ -4,6 +4,7 @@ import { useOutletContext } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { CreateLedgerModal } from './components/CreateLedgerModal';
 import useAuthStore from '../../../store/useAuthStore';
+import { apiUrl } from '../../../utils/api';
 
 export const LedgerCollectionPage = () => {
   const { showCreateModalOverlay, setShowCreateModalOverlay } = useOutletContext();
@@ -26,7 +27,7 @@ export const LedgerCollectionPage = () => {
           return;
         }
 
-        const response = await fetch('http://localhost:8085/api/v1/ledger', {
+        const response = await fetch(apiUrl('/ledger'), {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,

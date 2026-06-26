@@ -4,10 +4,13 @@ const multer = require('multer');
 const path = require('path');
 const invoiceController = require('../controller/invoiceController');
 const authMiddleware = require('../middleware/authMiddleware');
+const { uploadDirs } = require('../config/env');
+
+const uploadFolder = uploadDirs.invoices;
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, './uploads/invoices/');
+    cb(null, uploadFolder);
   },
   filename: function (req, file, cb) {
     const nameWithoutExt = path.parse(file.originalname).name;

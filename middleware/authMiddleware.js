@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { getEnvConfig } = require('../config/env');
 
 
 const verifyToken = (req, res, next) => {
@@ -14,8 +15,9 @@ const verifyToken = (req, res, next) => {
     const token = authHeader.split(' ')[1];
 
     try {
+        const { jwtSecret } = getEnvConfig();
         // Verify the token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
+        const decoded = jwt.verify(token, jwtSecret);
 
         // Attach the decoded payload to the request
         req.user = decoded;
@@ -25,6 +27,9 @@ const verifyToken = (req, res, next) => {
     } catch (error) {
         if (error.name === 'TokenExpiredError') {
             return res.status(401).json({ message: 'Session expired. Please log in again.' });
+        }
+        if (error.code === 'MISSING_ENV_VARS') {
+            return res.status(500).json({ message: error.message });
         }
         return res.status(403).json({ message: 'Invalid token.' });
     }

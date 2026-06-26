@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { apiUrl } from '../utils/api';
 
 const useAuthStore = create(
   persist(
@@ -31,7 +32,7 @@ const useAuthStore = create(
 
         try {
           // ! hardcoded api path
-          const response = await fetch('http://localhost:8085/api/v1/auth/verify', {
+          const response = await fetch(apiUrl('/auth/verify'), {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${token}`
@@ -66,7 +67,7 @@ const useAuthStore = create(
         if (!token) return;
 
         try {
-          const response = await fetch('http://localhost:8085/api/v1/settings/active-business', {
+          const response = await fetch(apiUrl('/settings/active-business'), {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',

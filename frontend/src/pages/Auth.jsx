@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
+import { apiUrl } from '../utils/api';
 
 import './Auth.css';
 
@@ -54,7 +55,7 @@ function Auth() {
 
     try {
       // ! Hard coded backend port
-      const response = await fetch(`http://localhost:8085${endpoint}`, {
+      const response = await fetch(apiUrl(endpoint), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(isLogin ? { email, password } : { username, email, password })

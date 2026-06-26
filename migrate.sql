@@ -1,6 +1,6 @@
 -- ═══════════════════════════════════════════════════════════════
 --  Reconciliation Migration Script
---  Run once: mysql -h <host> -u remoteuser -p invoice < migrate.sql
+--  Run once with your configured MySQL environment variables and database name.
 --  Safe to re-run (uses IF NOT EXISTS / IF EXISTS guards)
 -- ═══════════════════════════════════════════════════════════════
 

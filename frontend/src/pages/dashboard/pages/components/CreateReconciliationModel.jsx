@@ -3,6 +3,7 @@ import './CreateReconciliationModel.css';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../../../store/useAuthStore';
+import { apiUrl } from '../../../../utils/api';
 
 const MONTHS = [
     '', 'January', 'February', 'March', 'April', 'May', 'June',
@@ -41,10 +42,10 @@ export function CreateReconcilationsModel({ isOpen, onClose }) {
             setError('');
 
             const [ledgersRes, statementsRes] = await Promise.all([
-                axios.get('http://localhost:8085/api/v1/ledger', {
+                axios.get(apiUrl('/ledger'), {
                     headers: { Authorization: `Bearer ${token}` }
                 }),
-                axios.get('http://localhost:8085/api/v1/bank-statement/groups', {
+                axios.get(apiUrl('/bank-statement/groups'), {
                     headers: { Authorization: `Bearer ${token}` }
                 })
             ]);
@@ -95,7 +96,7 @@ export function CreateReconcilationsModel({ isOpen, onClose }) {
             setSuccess('');
 
             const res = await axios.post(
-                'http://localhost:8085/api/v1/reconciliation/run',
+                apiUrl('/reconciliation/run'),
                 {
                     ledgerId            : Number(formData.ledgerId),
                     bankStatementGroupId: Number(formData.statementGroupId)

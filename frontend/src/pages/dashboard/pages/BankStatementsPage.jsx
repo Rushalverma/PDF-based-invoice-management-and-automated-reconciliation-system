@@ -4,6 +4,7 @@ import { useOutletContext, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { CreateBankStatementGroupModal } from "./components/CreateBankStatementGroupModal";
 import useAuthStore from "../../../store/useAuthStore";
+import { apiUrl } from '../../../utils/api';
 
 export const BankStatementsPage = () => {
   const { showCreateModalOverlay, setShowCreateModalOverlay } = useOutletContext();
@@ -17,7 +18,7 @@ export const BankStatementsPage = () => {
     try {
       setLoading(true);
       setError('');
-      const response = await axios.get('http://localhost:8085/api/v1/bank-statement/groups', {
+      const response = await axios.get(apiUrl('/bank-statement/groups'), {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -44,7 +45,7 @@ export const BankStatementsPage = () => {
     e.stopPropagation();
     if (window.confirm('Are you sure you want to delete this bank statement? This action cannot be undone.')) {
       try {
-        await axios.delete(`http://localhost:8085/api/v1/bank-statement/groups/${id}`, {
+        await axios.delete(apiUrl(`/bank-statement/groups/${id}`), {
           headers: {
             Authorization: `Bearer ${token}`
           }

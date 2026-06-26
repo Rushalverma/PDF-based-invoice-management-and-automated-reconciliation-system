@@ -2,21 +2,24 @@
   "name": "pdf-based-invoice-management-and-automated-reconciliation-system",
   "version": "1.0.0",
   "description": "",
-  "homepage": "https://github.com/AiNoYash/PDF-based-invoice-management-and-automated-reconciliation-system#readme",
+  "homepage": "https://github.com/Rushalverma/PDF-based-invoice-management-and-automated-reconciliation-system#readme",
   "bugs": {
-    "url": "https://github.com/AiNoYash/PDF-based-invoice-management-and-automated-reconciliation-system/issues"
+    "url": "https://github.com/Rushalverma/PDF-based-invoice-management-and-automated-reconciliation-system/issues"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/AiNoYash/PDF-based-invoice-management-and-automated-reconciliation-system.git"
+  "repository":{
+    "type":"git",
+    "url":"git+https://github.com/Rushalverma/PDF-based-invoice-management-and-automated-reconciliation-system.git"
   },
   "license": "ISC",
   "author": "",
   "type": "commonjs",
   "main": "server.js",
   "scripts": {
-    "start": "nodemon server.js",
+    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

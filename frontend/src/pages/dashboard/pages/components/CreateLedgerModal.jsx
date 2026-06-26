@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './CreateLedgerModal.css';
 import useAuthStore from '../../../../store/useAuthStore';
+import { apiUrl } from '../../../../utils/api';
 
 const months = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -9,8 +10,6 @@ const months = [
 
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
-
-const API = 'http://localhost:8085/api/v1';
 
 export function CreateLedgerModal({ isOpen, onClose }) {
   const token = useAuthStore(state => state.token);
@@ -39,7 +38,7 @@ export function CreateLedgerModal({ isOpen, onClose }) {
       setLoadingAccounts(true);
       setError(null);
       try {
-        const res = await fetch(`${API}/settings/data`, {
+        const res = await fetch(apiUrl('/settings/data'), {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('Failed to load bank accounts');
@@ -101,7 +100,7 @@ export function CreateLedgerModal({ isOpen, onClose }) {
 
     try {
       // Step 1 — Create the ledger
-      const createRes = await fetch(`${API}/ledger`, {
+      const createRes = await fetch(apiUrl('/ledger'), {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,

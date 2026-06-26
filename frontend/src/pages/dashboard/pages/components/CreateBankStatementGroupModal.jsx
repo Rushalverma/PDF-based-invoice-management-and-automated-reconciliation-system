@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './CreateBankStatementGroupModal.css';
 import axios from 'axios';
 import useAuthStore from "../../../../store/useAuthStore";
+import { apiUrl } from '../../../../utils/api';
 
 const months = [
   "January", "February", "March", "April", "May", "June",
@@ -29,7 +30,7 @@ export function CreateBankStatementGroupModal({ isOpen, onClose, onUploadSuccess
     // Fetch bank accounts from settings API
     const fetchBankAccounts = async () => {
       try {
-        const response = await axios.get('http://localhost:8085/api/v1/settings/data', {
+        const response = await axios.get(apiUrl('/settings/data'), {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -85,7 +86,7 @@ export function CreateBankStatementGroupModal({ isOpen, onClose, onUploadSuccess
       formDataToSend.append('bankAccountId', formData.bankAccountId);
       formDataToSend.append('statementCsv', files[0]); // Submit first file
 
-      const response = await axios.post('http://localhost:8085/api/v1/bank-statement/upload', formDataToSend, {
+      const response = await axios.post(apiUrl('/bank-statement/upload'), formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data',
           Authorization: `Bearer ${token}`

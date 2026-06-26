@@ -1,40 +1,24 @@
-
-const path   = require('path');
 const mysql  = require('mysql2/promise');
-
-// Load .env from the project root (one level above this config/ directory)
-require('dotenv').config({ path: path.resolve(__dirname, '../.env'), override: true });
+const { getEnvConfig } = require('./env');
 
 let poolPromise;
 
 const initializePool = async () => {
-    // Read credentials here — AFTER dotenv has been loaded by server.js (or above)
-    const host     = process.env.MYSQL_HOST     || '10.140.187.28';
-    const port     = Number(process.env.MYSQL_PORT) || 3306;
-    const user     = process.env.MYSQL_USER     || 'remoteuser';
-    const password = process.env.MYSQL_PASSWORD || '1234';
-    const database = process.env.MYSQL_DATABASE || 'invoice';
-
-    // Try to auto-create the database — safe to fail on remote servers
-    // where the user doesn't have CREATE DATABASE privilege.
-    try {
-        const boot = await mysql.createConnection({ host, port, user, password });
-        await boot.query(`CREATE DATABASE IF NOT EXISTS \`${database}\``);
-        await boot.end();
-    } catch (_) {
-        // Database already exists or user lacks CREATE privilege — proceed anyway.
-    }
+    const { mysql: mysqlConfig } = getEnvConfig();
 
     return mysql.createPool({
-        host,
-        port,
-        user,
-        password,
-        database,
+        host: mysqlConfig.host,
+        port: mysqlConfig.port,
+        user: mysqlConfig.user,
+        password: mysqlConfig.password,
+        database: mysqlConfig.database,
+        ssl: mysqlConfig.ssl,
         waitForConnections: true,
-        connectionLimit: 10,
+        connectionLimit: Number(process.env.MYSQL_POOL_LIMIT) || 10,
         queueLimit: 0,
-        connectTimeout: 5000   // 5 s — fail fast if DB is unreachable
+        connectTimeout: 10000,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 0
     });
 };
 

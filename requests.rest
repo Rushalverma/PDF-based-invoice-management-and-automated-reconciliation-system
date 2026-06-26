@@ -1,2 +1,4 @@
 
-GET http://localhost:8085/lol
+@apiBaseUrl = {{$dotenv VITE_API_BASE_URL}}
+
+GET {{apiBaseUrl}}/lol

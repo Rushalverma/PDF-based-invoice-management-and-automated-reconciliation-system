@@ -4,8 +4,9 @@ const path = require('path');
 const fs = require('fs');
 const bankStatementController = require('../controller/bankStatementController');
 const authMiddleware = require('../middleware/authMiddleware');
+const { uploadDirs } = require('../config/env');
 
-const uploadFolder = './uploads/bank_statements/';
+const uploadFolder = uploadDirs.bankStatements;
 fs.mkdirSync(uploadFolder, { recursive: true });
 
 const storage = multer.diskStorage({

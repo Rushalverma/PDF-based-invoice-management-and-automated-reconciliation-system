@@ -3,6 +3,7 @@ import "./StatementGroupDetails.css";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import useAuthStore from "../../../../store/useAuthStore";
+import { apiUrl } from '../../../../utils/api';
 
 export function StatementGroupDetails() {
     const { id } = useParams();
@@ -19,7 +20,7 @@ export function StatementGroupDetails() {
             try {
                 setLoading(true);
                 setError('');
-                const response = await axios.get(`http://localhost:8085/api/v1/bank-statement/groups/${id}`, {
+                const response = await axios.get(apiUrl(`/bank-statement/groups/${id}`), {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
@@ -59,7 +60,7 @@ export function StatementGroupDetails() {
             ));
 
             // Update on backend (you may need to add this endpoint)
-            // await axios.patch(`http://localhost:8085/api/v1/bank-statement/records/${recordId}`, 
+            // Backend update endpoint can be wired through the shared API helper when implemented.
             //     { isReconciled: newState === 'Yes' },
             //     { headers: { Authorization: `Bearer ${token}` } }
             // );
