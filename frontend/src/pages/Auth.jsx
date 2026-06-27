@@ -51,7 +51,7 @@ function Auth() {
     setSuccess(null);
     setIsLoading(true);
 
-    const endpoint = isLogin ? '/api/v1/auth/login' : '/api/v1/auth/register';
+    const endpoint = isLogin ? '/auth/login' : '/auth/register';
 
     try {
       // ! Hard coded backend port
