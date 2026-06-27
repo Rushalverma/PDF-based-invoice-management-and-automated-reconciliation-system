@@ -106,9 +106,12 @@ CREATE TABLE IF NOT EXISTS bank_statement_records (
     FOREIGN KEY (bank_statement_file_id) REFERENCES bank_statement_files (id) ON DELETE SET NULL
 );
 
--- Migration guard: add invoice_number if this DB was created before this change
-ALTER TABLE bank_statement_records
-    ADD COLUMN invoice_number VARCHAR(100) DEFAULT NULL AFTER transaction_id;
+-- invoice_number column is already included in the CREATE TABLE above.
+-- The ALTER below is kept only as a migration guard for legacy databases
+-- that were created before the column was added to CREATE TABLE.
+-- initSchema.js swallows ER_DUP_FIELDNAME so this is harmless but noisy.
+-- ALTER TABLE bank_statement_records
+--     ADD COLUMN invoice_number VARCHAR(100) DEFAULT NULL AFTER transaction_id;
 
 CREATE TABLE IF NOT EXISTS reconciliation_groups (
     id INT AUTO_INCREMENT PRIMARY KEY,

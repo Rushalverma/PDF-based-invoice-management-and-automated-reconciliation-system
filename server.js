@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
@@ -18,7 +19,8 @@ const reconciliationRoute = require('./routes/reconciliationRoute');
 
 const app = express();
 const uploadsRoot = path.join(process.cwd(), 'uploads');
-fs.mkdirSync(uploadsRoot, { recursive: true });
+fs.mkdirSync(path.join(uploadsRoot, 'invoices'), { recursive: true });
+fs.mkdirSync(path.join(uploadsRoot, 'bank_statements'), { recursive: true });
 
 // Middleware
 app.use(cors({
@@ -44,8 +46,8 @@ app.use(morgan('dev'));
 app.use('/uploads', express.static(uploadsRoot));
 
 // Basic health check route
-app.get('/lol', (req, res) => {
-    res.status(200).json({ message: 'API is running cleanly' });
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'UP', message: 'API is running' });
 });
 // Routes
 app.use('/api/v1/auth', authRoute);
@@ -55,6 +57,17 @@ app.use('/api/v1/ledger', ledgerRoute);
 app.use('/api/v1/bank-statement', bankStatementRoute);
 app.use('/api/v1/stats', statsRoute);
 app.use('/api/v1/reconciliation', reconciliationRoute);
+
+// 404 handler
+app.use((req, res, next) => {
+    res.status(404).json({ error: 'Route not found' });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
+});
 
 // Initialize database and start server
 const PORT = process.env.PORT || 3000;

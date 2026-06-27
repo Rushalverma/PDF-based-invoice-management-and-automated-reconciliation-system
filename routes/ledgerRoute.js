@@ -55,6 +55,9 @@ router.get('/:id/files', authMiddleware, ledgerController.getLedgerFiles);
 // Get all records for a ledger
 router.get('/:id/records', authMiddleware, ledgerController.getLedgerRecords);
 
+// Update a single ledger record field
+router.put('/record/:recordId', authMiddleware, ledgerController.updateLedgerRecord);
+
 // Delete a ledger
 router.delete('/:id', authMiddleware, ledgerController.deleteLedger);
 

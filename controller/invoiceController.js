@@ -1,3 +1,4 @@
+const db = require('../config/db');
 const LedgerModel = require('../model/ledgerModel');
 const { parsePdf } = require('../parsing/parser');
 
@@ -81,7 +82,7 @@ const getDashboardStats = async (req, res) => {
 
         matchCounts.forEach(row => {
             const mType = String(row.match_type).toUpperCase();
-            if (mType === 'AUTO_EXACT' || mType === 'AUTO_EXACT') { // handled lowercase enum fallback
+            if (mType === 'AUTO_EXACT') {
                 exactAllTime += Number(row.all_time_count);
                 exactCurr += Number(row.current_month_count || 0);
                 exactPrev += Number(row.prev_month_count || 0);

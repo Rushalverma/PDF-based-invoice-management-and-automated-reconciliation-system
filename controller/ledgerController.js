@@ -216,6 +216,35 @@ const deleteLedger = async (req, res) => {
     }
 };
 
+// ─── PUT /api/v1/ledger/record/:recordId ─────────────────────────────────────
+// Allows the frontend to patch a single field on a ledger record
+const updateLedgerRecord = async (req, res) => {
+    try {
+        const { recordId } = req.params;
+        const { field, value } = req.body;
+
+        const ALLOWED_FIELDS = ['transaction_id', 'transaction_date', 'amount', 'transaction_type', 'description'];
+        if (!ALLOWED_FIELDS.includes(field)) {
+            return res.status(400).json({ success: false, message: `Field '${field}' cannot be updated` });
+        }
+
+        const db = require('../config/db');
+        const [result] = await db.execute(
+            `UPDATE ledger_records SET ${field} = ? WHERE id = ?`,
+            [value, recordId]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: 'Record not found' });
+        }
+
+        res.status(200).json({ success: true, message: 'Record updated' });
+    } catch (error) {
+        console.error('Error updating ledger record:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function getMonthName(monthNum) {
     const months = ['January', 'February', 'March', 'April', 'May', 'June',
@@ -237,5 +266,6 @@ module.exports = {
     uploadLedgerFiles,
     getLedgerFiles,
     getLedgerRecords,
+    updateLedgerRecord,
     deleteLedger
 };

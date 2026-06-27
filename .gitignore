@@ -7,8 +7,8 @@
 node_modules/
 frontend/node_modules/
 
-package-lock.json
-package.json
+# Keep package-lock.json for reproducible installs
+# package.json and package-lock.json must NOT be ignored
 
 # Build output
 dist/
