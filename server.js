@@ -12,6 +12,7 @@ const bankStatementRoute = require('./routes/bankStatementRoute');
 const statsRoute = require('./routes/statsRoute');
 const initSchema = require('./config/initSchema');
 const { getEnvConfig } = require('./config/env');
+const db = require('./config/db');
 
 const ledgerRoute = require('./routes/ledgerRoute');
 const reconciliationRoute = require('./routes/reconciliationRoute');
@@ -45,9 +46,15 @@ app.use(express.json());
 app.use(morgan('dev'));
 app.use('/uploads', express.static(uploadsRoot));
 
-// Basic health check route
-app.get('/health', (req, res) => {
-    res.status(200).json({ status: 'UP', message: 'API is running' });
+// Basic health check route — also pings the DB to keep Aiven alive
+app.get('/health', async (req, res) => {
+    try {
+        await db.query('SELECT 1');
+        res.status(200).json({ status: 'UP', message: 'API is running', db: 'connected' });
+    } catch (err) {
+        console.error('Health check DB ping failed:', err.message);
+        res.status(503).json({ status: 'DEGRADED', message: 'API is running but DB is unreachable', db: 'disconnected' });
+    }
 });
 // Routes
 app.use('/api/v1/auth', authRoute);
