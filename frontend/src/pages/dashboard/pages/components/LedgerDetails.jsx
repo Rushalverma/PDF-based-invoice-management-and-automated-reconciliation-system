@@ -131,7 +131,7 @@ export function LedgerDetails() {
             const formPayload = new FormData();
             files.forEach(file => formPayload.append("files", file));
 
-            const response = await fetch(`${API}/ledger/${id}/files`, {
+            const response = await fetch(apiUrl(`/ledger/${id}/files`), {
                 method: "POST",
                 headers: { Authorization: `Bearer ${token}` },
                 body: formPayload

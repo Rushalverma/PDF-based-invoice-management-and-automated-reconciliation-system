@@ -127,7 +127,7 @@ export function CreateLedgerModal({ isOpen, onClose }) {
         const formPayload = new FormData();
         files.forEach(f => formPayload.append('files', f));
 
-        const uploadRes = await fetch(`${API}/ledger/${ledgerId}/files`, {
+        const uploadRes = await fetch(apiUrl(`/ledger/${ledgerId}/files`), {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
           body: formPayload
