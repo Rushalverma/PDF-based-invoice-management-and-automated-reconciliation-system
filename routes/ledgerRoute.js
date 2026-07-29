@@ -7,17 +7,7 @@ const authMiddleware = require('../middleware/authMiddleware');
 const { uploadDirs } = require('../config/env');
 
 // ─── Multer setup for ledger file uploads ────────────────────────────────────
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, uploadDirs.invoices);
-    },
-    filename: function (req, file, cb) {
-        // Same naming convention as invoiceRoute: originalName-timestamp.ext
-        const nameWithoutExt = path.parse(file.originalname).name;
-        const uploadTime = Date.now();
-        cb(null, `${nameWithoutExt}-${uploadTime}${path.extname(file.originalname)}`);
-    }
-});
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
     const allowed = ['.pdf', '.csv', '.xls', '.xlsx'];

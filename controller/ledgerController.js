@@ -2,6 +2,7 @@ const path = require('path');
 const LedgerModel = require('../model/ledgerModel');
 const BusinessModel = require('../model/businessModel');
 const { parsePdf } = require('../parsing/parser');
+const { uploadToCloudinary } = require('../config/cloudinary');
 
 // Helper to extract userId consistently (JWT payload uses `userId`)
 const getUserId = (req) => req.user.userId || req.user.id;
@@ -123,21 +124,29 @@ const uploadLedgerFiles = async (req, res) => {
             const ext = path.extname(file.originalname).toLowerCase();
             const fileType = (ext === '.pdf') ? 'invoice_pdf' : 'excel_ledger';
 
-            const fileId = await LedgerModel.addFile(ledgerId, file.path, fileType);
+            // Upload memory buffer directly to Cloudinary
+            const cloudinaryResult = await uploadToCloudinary(file.buffer, {
+                folder: fileType === 'invoice_pdf' ? 'invoices' : 'ledgers',
+                resource_type: 'auto'
+            });
+
+            const fileUrl = cloudinaryResult.secure_url;
+            const fileId = await LedgerModel.addFile(ledgerId, fileUrl, fileType);
 
             const fileResult = {
                 id: fileId,
                 originalName: file.originalname,
-                storedName: file.filename,
+                fileUrl,
+                cloudinaryId: cloudinaryResult.public_id,
                 fileType,
                 size: file.size,
                 records: []
             };
 
-            // If it's a PDF, parse it and insert records
+            // If it's a PDF, parse it directly from RAM buffer and insert records
             if (ext === '.pdf') {
                 try {
-                    const invoiceRecords = await parsePdf(file.path);
+                    const invoiceRecords = await parsePdf(file.buffer);
                     const insertedIds = await LedgerModel.addRecords(ledgerId, fileId, invoiceRecords);
                     fileResult.records = invoiceRecords.map((record, i) => ({
                         recordId: insertedIds[i],

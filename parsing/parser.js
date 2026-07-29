@@ -336,14 +336,22 @@ function formatDateForMySQL(dateStr) {
 /**
  * Parses a PDF and extracts structured invoice data from every page.
  * 
- * @param {string} pdfPath - Path to the PDF file
+ * @param {string|Buffer} pdfInput - Path to the PDF file or Buffer instance
  * @returns {Promise<Array>} Array of invoice data objects (one per page)
  */
-async function parsePdf(pdfPath) {
+async function parsePdf(pdfInput) {
     try {
-        console.log(`[Parser] Starting extraction for file: ${pdfPath}`);
+        console.log(`[Parser] Starting extraction for PDF input`);
 
-        const dataBuffer = await fs.promises.readFile(pdfPath);
+        let dataBuffer;
+        if (Buffer.isBuffer(pdfInput)) {
+            dataBuffer = pdfInput;
+        } else if (typeof pdfInput === 'string') {
+            dataBuffer = await fs.promises.readFile(pdfInput);
+        } else {
+            throw new Error('Invalid PDF input: must be a Buffer or file path string');
+        }
+
         const dataUint8Array = new Uint8Array(dataBuffer);
 
         const loadingTask = pdfjsLib.getDocument({ data: dataUint8Array });

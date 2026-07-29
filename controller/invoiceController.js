@@ -1,10 +1,11 @@
 const db = require('../config/db');
 const LedgerModel = require('../model/ledgerModel');
 const { parsePdf } = require('../parsing/parser');
+const { uploadToCloudinary } = require('../config/cloudinary');
 
 const uploadInvoice = async (req, res) => {
     try {
-        if (!req.file) {
+        if (!req.file || !req.file.buffer) {
             return res.status(400).json({ message: "No file uploaded" });
         }
 
@@ -13,20 +14,28 @@ const uploadInvoice = async (req, res) => {
             return res.status(400).json({ message: "ledger_id is required" });
         }
 
-        const filePath = req.file.path;
+        // 1. Upload memory buffer directly to Cloudinary
+        const cloudinaryResult = await uploadToCloudinary(req.file.buffer, {
+            folder: 'invoices',
+            resource_type: 'auto'
+        });
 
-        // 1. Save file record to ledger_files
-        const ledger_file_id = await LedgerModel.addFile(ledger_id, filePath, 'invoice_pdf');
+        const fileUrl = cloudinaryResult.secure_url;
 
-        // 2. Parse the PDF — returns an array of invoice data (one per page)
-        const invoiceRecords = await parsePdf(filePath);
+        // 2. Save Cloudinary URL record to ledger_files table
+        const ledger_file_id = await LedgerModel.addFile(ledger_id, fileUrl, 'invoice_pdf');
 
-        // 3. Insert all parsed records into ledger_records
+        // 3. Parse the PDF directly from RAM buffer — returns array of invoice records
+        const invoiceRecords = await parsePdf(req.file.buffer);
+
+        // 4. Insert all parsed records into ledger_records
         const insertedIds = await LedgerModel.addRecords(ledger_id, ledger_file_id, invoiceRecords);
 
         res.status(200).json({
-            message: `PDF uploaded and parsed successfully! ${insertedIds.length} record(s) created.`,
-            fileName: req.file.filename,
+            message: `PDF uploaded to Cloudinary and parsed successfully! ${insertedIds.length} record(s) created.`,
+            fileUrl: fileUrl,
+            fileName: req.file.originalname,
+            cloudinaryId: cloudinaryResult.public_id,
             records: invoiceRecords,
             recordIds: insertedIds
         });

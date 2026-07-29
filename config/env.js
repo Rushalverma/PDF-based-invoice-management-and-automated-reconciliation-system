@@ -40,7 +40,12 @@ const getEnvConfig = () => {
         corsOrigins: parseCsvList(process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || process.env.FRONTEND_URL),
         frontendOrigin: process.env.FRONTEND_ORIGIN || '',
         frontendBaseUrl: process.env.VITE_API_BASE_URL || process.env.FRONTEND_API_BASE_URL || '',
-        uploadsRoot: process.env.UPLOADS_DIR || process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads')
+        uploadsRoot: process.env.UPLOADS_DIR || process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads'),
+        cloudinary: {
+            cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+            apiKey: process.env.CLOUDINARY_API_KEY,
+            apiSecret: process.env.CLOUDINARY_API_SECRET
+        }
     };
 
     cachedConfig.uploadDirs = {
@@ -78,5 +83,8 @@ module.exports = {
     },
     get port() {
         return getConfigValue('port');
+    },
+    get cloudinary() {
+        return getConfigValue('cloudinary');
     }
 };
