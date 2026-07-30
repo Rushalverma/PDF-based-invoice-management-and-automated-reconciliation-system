@@ -4,12 +4,16 @@ const multer = require('multer');
 const path = require('path');
 const ledgerController = require('../controller/ledgerController');
 const authMiddleware = require('../middleware/authMiddleware');
+const { checkRole } = require('../middleware/rbacMiddleware');
 const { uploadDirs } = require('../config/env');
 
 // ─── Multer setup for ledger file uploads ────────────────────────────────────
 const storage = multer.memoryStorage();
 
+const sanitizeFilename = (name) => path.basename(name).replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 200);
+
 const fileFilter = (req, file, cb) => {
+    file.originalname = sanitizeFilename(file.originalname || '');
     const allowed = ['.pdf', '.csv', '.xls', '.xlsx'];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowed.includes(ext)) {
@@ -34,10 +38,10 @@ router.get('/', authMiddleware, ledgerController.getLedgers);
 router.get('/:id', authMiddleware, ledgerController.getLedgerById);
 
 // Create a new ledger (metadata only, no files)
-router.post('/', authMiddleware, ledgerController.createLedger);
+router.post('/', authMiddleware, checkRole(['admin', 'accountant']), ledgerController.createLedger);
 
 // Upload files to an existing ledger (up to 10 files at once)
-router.post('/:id/files', authMiddleware, upload.array('files', 10), ledgerController.uploadLedgerFiles);
+router.post('/:id/files', authMiddleware, checkRole(['admin', 'accountant']), upload.array('files', 10), ledgerController.uploadLedgerFiles);
 
 // Get all files for a ledger
 router.get('/:id/files', authMiddleware, ledgerController.getLedgerFiles);
@@ -46,9 +50,9 @@ router.get('/:id/files', authMiddleware, ledgerController.getLedgerFiles);
 router.get('/:id/records', authMiddleware, ledgerController.getLedgerRecords);
 
 // Update a single ledger record field
-router.put('/record/:recordId', authMiddleware, ledgerController.updateLedgerRecord);
+router.put('/record/:recordId', authMiddleware, checkRole(['admin', 'accountant']), ledgerController.updateLedgerRecord);
 
 // Delete a ledger
-router.delete('/:id', authMiddleware, ledgerController.deleteLedger);
+router.delete('/:id', authMiddleware, checkRole(['admin', 'accountant']), ledgerController.deleteLedger);
 
 module.exports = router;

@@ -4,13 +4,12 @@ import useAuthStore from "./../../../store/useAuthStore";
 import { apiUrl } from '../../../utils/api';
 
 export function SettingsPage() {
-
     const user = useAuthStore(state => state.user);
     const token = useAuthStore(state => state.token);
     const setLastActiveBusinessId = useAuthStore(state => state.setLastActiveBusinessId);
     const updateUser = useAuthStore(state => state.updateUser);
     const logout = useAuthStore(state => state.logout);
-    
+
     const username = user?.username ?? 'User';
 
     const [newUsername, setNewUsername] = useState('');
@@ -20,7 +19,17 @@ export function SettingsPage() {
     const [bankAccounts, setBankAccounts] = useState([]);
     const [newBankDetails, setNewBankDetails] = useState({ bank_name: '', account_nickname: '', account_last_four: '' });
 
-    // Fetch initial data
+    // Team & Audit State
+    const [members, setMembers] = useState([]);
+    const [invitations, setInvitations] = useState([]);
+    const [auditLogs, setAuditLogs] = useState([]);
+    const [inviteEmail, setInviteEmail] = useState('');
+    const [inviteRole, setInviteRole] = useState('viewer');
+    const [inviteMessage, setInviteMessage] = useState(null);
+    const [acceptToken, setAcceptToken] = useState('');
+    const [acceptMessage, setAcceptMessage] = useState(null);
+
+    // Fetch initial settings data
     useEffect(() => {
         const fetchData = async () => {
             if (!token) return;
@@ -32,7 +41,7 @@ export function SettingsPage() {
                     const data = await res.json();
                     setBusinesses(data.businesses || []);
                     setBankAccounts(data.bankAccounts || []);
-                    
+
                     if (data.businesses && data.businesses.length > 0) {
                         const currentActive = user?.lastActiveBusinessId;
                         const activeExists = data.businesses.some(b => b.id === currentActive);
@@ -48,6 +57,46 @@ export function SettingsPage() {
         };
         fetchData();
     }, [token, user?.lastActiveBusinessId, setLastActiveBusinessId]);
+
+    // Fetch Team Members, Invitations & Audit Logs whenever selectedBusinessId changes
+    useEffect(() => {
+        if (!token || !selectedBusinessId) return;
+
+        const fetchTeamAndAudit = async () => {
+            try {
+                // Fetch members
+                const mRes = await fetch(apiUrl(`/team/members?businessId=${selectedBusinessId}`), {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (mRes.ok) {
+                    const mData = await mRes.json();
+                    setMembers(mData.members || []);
+                }
+
+                // Fetch pending invitations
+                const iRes = await fetch(apiUrl(`/team/invitations?businessId=${selectedBusinessId}`), {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (iRes.ok) {
+                    const iData = await iRes.json();
+                    setInvitations(iData.invitations || []);
+                }
+
+                // Fetch audit logs
+                const aRes = await fetch(apiUrl(`/team/audit-logs?businessId=${selectedBusinessId}`), {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (aRes.ok) {
+                    const aData = await aRes.json();
+                    setAuditLogs(aData.logs || []);
+                }
+            } catch (err) {
+                console.error('Error loading team & audit data:', err);
+            }
+        };
+
+        fetchTeamAndAudit();
+    }, [token, selectedBusinessId]);
 
     // --- Handlers ---
     const handleUpdateUsername = async () => {
@@ -101,7 +150,7 @@ export function SettingsPage() {
                 const data = await res.json();
                 const newBiz = { id: data.id, business_name: data.business_name, user_id: data.user_id };
                 setBusinesses([...businesses, newBiz]);
-                
+
                 if (!selectedBusinessId) {
                     setSelectedBusinessId(newBiz.id);
                     setLastActiveBusinessId(newBiz.id, newBiz.business_name);
@@ -155,9 +204,9 @@ export function SettingsPage() {
             });
             if (res.ok) {
                 const data = await res.json();
-                setBankAccounts([...bankAccounts, { 
-                    id: data.id, 
-                    business_id: data.business_id, 
+                setBankAccounts([...bankAccounts, {
+                    id: data.id,
+                    business_id: data.business_id,
                     bank_name: data.bank_name,
                     account_nickname: data.account_nickname,
                     account_last_four: data.account_last_four
@@ -180,6 +229,77 @@ export function SettingsPage() {
             }
         } catch (error) {
             console.error('Error deleting bank account:', error);
+        }
+    };
+
+    const handleInviteMember = async () => {
+        if (!inviteEmail || !selectedBusinessId) return;
+        setInviteMessage(null);
+        try {
+            const res = await fetch(apiUrl('/team/invite'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    businessId: selectedBusinessId,
+                    email: inviteEmail,
+                    role: inviteRole
+                })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setInviteMessage({ type: 'success', text: `Invitation token created for ${inviteEmail}: ${data.invitation.token}` });
+                setInvitations([data.invitation, ...invitations]);
+                setInviteEmail('');
+            } else {
+                setInviteMessage({ type: 'error', text: data.message || 'Failed to send invitation' });
+            }
+        } catch (err) {
+            console.error('Error sending invitation:', err);
+            setInviteMessage({ type: 'error', text: 'Error creating invitation' });
+        }
+    };
+
+    const handleAcceptInvite = async () => {
+        if (!acceptToken) return;
+        setAcceptMessage(null);
+        try {
+            const res = await fetch(apiUrl('/team/accept-invite'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ token: acceptToken })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setAcceptMessage({ type: 'success', text: 'Invitation accepted! Business added to your access list.' });
+                setAcceptToken('');
+                // Refresh data
+                window.location.reload();
+            } else {
+                setAcceptMessage({ type: 'error', text: data.message || 'Invalid or expired token' });
+            }
+        } catch (err) {
+            setAcceptMessage({ type: 'error', text: 'Error accepting invitation' });
+        }
+    };
+
+    const handleRemoveMember = async (userId) => {
+        if (!window.confirm("Remove this user's access from the business?")) return;
+        try {
+            const res = await fetch(apiUrl(`/team/members/${userId}?businessId=${selectedBusinessId}`), {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                setMembers(members.filter(m => m.user_id !== userId));
+            }
+        } catch (err) {
+            console.error('Error removing member:', err);
         }
     };
 
@@ -210,7 +330,27 @@ export function SettingsPage() {
                         <button onClick={handleUpdateUsername} className="btn-primary">Update</button>
                     </div>
                 </div>
-                <div className="form-group danger-zone">
+
+                {/* Redeem Invitation */}
+                <div className="form-group" style={{ marginTop: '1.25rem' }}>
+                    <label><strong>Have an Invitation Token?</strong></label>
+                    <div className="input-group">
+                        <input
+                            type="text"
+                            placeholder="Enter 64-char invitation token"
+                            value={acceptToken}
+                            onChange={(e) => setAcceptToken(e.target.value)}
+                        />
+                        <button onClick={handleAcceptInvite} className="btn-primary">Accept Invite</button>
+                    </div>
+                    {acceptMessage && (
+                        <p style={{ color: acceptMessage.type === 'error' ? 'red' : 'green', marginTop: '0.5rem' }}>
+                            {acceptMessage.text}
+                        </p>
+                    )}
+                </div>
+
+                <div className="form-group danger-zone" style={{ marginTop: '1.5rem' }}>
                     <button onClick={handleDeleteAccount} className="btn-danger">Delete Account</button>
                 </div>
             </section>
@@ -225,8 +365,8 @@ export function SettingsPage() {
                     {businesses.length === 0 ? (
                         <p style={{ color: 'red', marginTop: '0.5rem' }}>No businesses found. Please add one below.</p>
                     ) : (
-                        <select 
-                            value={selectedBusinessId || ''} 
+                        <select
+                            value={selectedBusinessId || ''}
                             onChange={handleActiveBusinessChange}
                         >
                             {businesses.map(biz => (
@@ -267,7 +407,120 @@ export function SettingsPage() {
                 </div>
             </section>
 
-            {/* 3. Bank Account Management */}
+            {/* 3. Team & Guests Management (RBAC) */}
+            <section className="settings-section">
+                <h3>Team & Guests (RBAC)</h3>
+                {!selectedBusinessId ? (
+                    <p style={{ color: 'red' }}>Select a business above to manage team members and viewers.</p>
+                ) : (
+                    <>
+                        <div style={{ marginBottom: '1.5rem' }}>
+                            <h4>Active Members & Viewers</h4>
+                            <ul className="settings-list" style={{ marginTop: '0.5rem' }}>
+                                {members.map(m => (
+                                    <li key={m.user_id} className="settings-list-item">
+                                        <span>
+                                            <strong>{m.username}</strong> ({m.email}) —{' '}
+                                            <span style={{
+                                                padding: '2px 8px',
+                                                borderRadius: '4px',
+                                                fontSize: '0.75rem',
+                                                fontWeight: 600,
+                                                background: m.role === 'admin' ? '#ef4444' : m.role === 'accountant' ? '#2563eb' : '#6b7280',
+                                                color: '#fff'
+                                            }}>
+                                                {m.role.toUpperCase()}
+                                            </span>
+                                            {m.is_owner ? ' (Owner)' : ''}
+                                        </span>
+                                        {!m.is_owner && (
+                                            <button onClick={() => handleRemoveMember(m.user_id)} className="btn-danger-small">
+                                                Remove
+                                            </button>
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        {/* Invite Viewers */}
+                        <div className="add-form-container" style={{ marginBottom: '1.5rem' }}>
+                            <h4>Invite New Guest / Viewer</h4>
+                            <div className="input-group multi-input">
+                                <input
+                                    type="email"
+                                    placeholder="Guest Email Address"
+                                    value={inviteEmail}
+                                    onChange={(e) => setInviteEmail(e.target.value)}
+                                />
+                                <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
+                                    <option value="viewer">Viewer (Read-Only)</option>
+                                    <option value="accountant">Accountant (Manager)</option>
+                                </select>
+                                <button onClick={handleInviteMember} className="btn-primary">Send Invite</button>
+                            </div>
+                            {inviteMessage && (
+                                <p style={{ color: inviteMessage.type === 'error' ? 'red' : 'green', marginTop: '0.5rem', wordBreak: 'break-all' }}>
+                                    {inviteMessage.text}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Pending Invitations */}
+                        {invitations.length > 0 && (
+                            <div>
+                                <h4>Pending Invitations</h4>
+                                <ul className="settings-list" style={{ marginTop: '0.5rem' }}>
+                                    {invitations.map(inv => (
+                                        <li key={inv.id} className="settings-list-item" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                                            <div>
+                                                <strong>{inv.email}</strong> ({inv.role}) — Token: <code style={{ color: '#2563eb' }}>{inv.token}</code>
+                                            </div>
+                                            <small style={{ color: '#6b7280' }}>Invited by {inv.inviter_name}</small>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                    </>
+                )}
+            </section>
+
+            {/* 4. Audit Log */}
+            <section className="settings-section">
+                <h3>Audit Activity Log</h3>
+                <p>Tracked actions for security and compliance.</p>
+                {auditLogs.length === 0 ? (
+                    <p style={{ color: '#6b7280', marginTop: '0.5rem' }}>No audit activity recorded yet.</p>
+                ) : (
+                    <div style={{ overflowX: 'auto', marginTop: '1rem' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                            <thead>
+                                <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
+                                    <th style={{ padding: '8px' }}>User</th>
+                                    <th style={{ padding: '8px' }}>Action</th>
+                                    <th style={{ padding: '8px' }}>Entity</th>
+                                    <th style={{ padding: '8px' }}>IP Address</th>
+                                    <th style={{ padding: '8px' }}>Date/Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {auditLogs.map(log => (
+                                    <tr key={log.id} style={{ borderBottom: '1px solid #edf2f7' }}>
+                                        <td style={{ padding: '8px' }}>{log.username} ({log.email})</td>
+                                        <td style={{ padding: '8px', fontWeight: 600, color: '#2563eb' }}>{log.action}</td>
+                                        <td style={{ padding: '8px' }}>{log.entity_type} {log.entity_id ? `(#${log.entity_id})` : ''}</td>
+                                        <td style={{ padding: '8px' }}>{log.ip_address}</td>
+                                        <td style={{ padding: '8px' }}>{new Date(log.created_at).toLocaleString()}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </section>
+
+            {/* 5. Bank Accounts */}
             <section className="settings-section">
                 <h3>Bank Accounts</h3>
                 {!selectedBusinessId ? (

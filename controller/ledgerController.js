@@ -3,6 +3,7 @@ const LedgerModel = require('../model/ledgerModel');
 const BusinessModel = require('../model/businessModel');
 const { parsePdf } = require('../parsing/parser');
 const { uploadToCloudinary } = require('../config/cloudinary');
+const { logAudit } = require('../utils/auditLogger');
 
 // Helper to extract userId consistently (JWT payload uses `userId`)
 const getUserId = (req) => req.user.userId || req.user.id;
@@ -127,7 +128,7 @@ const uploadLedgerFiles = async (req, res) => {
             // Upload memory buffer directly to Cloudinary
             const cloudinaryResult = await uploadToCloudinary(file.buffer, {
                 folder: fileType === 'invoice_pdf' ? 'invoices' : 'ledgers',
-                resource_type: 'auto'
+                resource_type: ext === '.pdf' ? 'raw' : 'auto'
             });
 
             const fileUrl = cloudinaryResult.secure_url;
@@ -163,6 +164,14 @@ const uploadLedgerFiles = async (req, res) => {
         }
 
         const totalRecords = savedFiles.reduce((sum, f) => sum + f.records.length, 0);
+
+        await logAudit(req, {
+            businessId: ledger ? ledger.business_id : null,
+            action: 'UPLOAD_LEDGER',
+            entityType: 'ledger_file',
+            entityId: ledgerId,
+            details: { filesCount: savedFiles.length, recordsExtracted: totalRecords }
+        });
 
         res.status(201).json({
             success: true,
@@ -217,6 +226,13 @@ const deleteLedger = async (req, res) => {
                 message: 'Ledger not found or you are not authorized to delete it'
             });
         }
+
+        await logAudit(req, {
+            businessId: businesses[0].id,
+            action: 'DELETE_LEDGER',
+            entityType: 'ledger',
+            entityId: id
+        });
 
         res.status(200).json({ success: true, message: 'Ledger deleted successfully' });
     } catch (error) {

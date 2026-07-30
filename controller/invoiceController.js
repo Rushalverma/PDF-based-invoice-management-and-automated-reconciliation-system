@@ -2,6 +2,7 @@ const db = require('../config/db');
 const LedgerModel = require('../model/ledgerModel');
 const { parsePdf } = require('../parsing/parser');
 const { uploadToCloudinary } = require('../config/cloudinary');
+const { logAudit } = require('../utils/auditLogger');
 
 const uploadInvoice = async (req, res) => {
     try {
@@ -17,7 +18,7 @@ const uploadInvoice = async (req, res) => {
         // 1. Upload memory buffer directly to Cloudinary
         const cloudinaryResult = await uploadToCloudinary(req.file.buffer, {
             folder: 'invoices',
-            resource_type: 'auto'
+            resource_type: 'raw'
         });
 
         const fileUrl = cloudinaryResult.secure_url;
@@ -30,6 +31,13 @@ const uploadInvoice = async (req, res) => {
 
         // 4. Insert all parsed records into ledger_records
         const insertedIds = await LedgerModel.addRecords(ledger_id, ledger_file_id, invoiceRecords);
+
+        await logAudit(req, {
+            action: 'UPLOAD_INVOICE',
+            entityType: 'invoice_pdf',
+            entityId: ledger_file_id,
+            details: { fileName: req.file.originalname, recordsCount: insertedIds.length }
+        });
 
         res.status(200).json({
             message: `PDF uploaded to Cloudinary and parsed successfully! ${insertedIds.length} record(s) created.`,

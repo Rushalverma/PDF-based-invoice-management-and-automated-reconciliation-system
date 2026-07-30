@@ -384,7 +384,7 @@ async function parsePdf(pdfInput) {
             allInvoiceData.push(invoiceData);
         }
 
-        console.log(`\n[Parser] Finished processing ${pdfPath}. Extracted ${allInvoiceData.length} record(s).`);
+        console.log(`\n[Parser] Finished processing PDF input. Extracted ${allInvoiceData.length} record(s).`);
         return allInvoiceData;
 
     } catch (error) {

@@ -19,7 +19,7 @@ cloudinary.config({
 const uploadToCloudinary = (buffer, options = {}) => {
     return new Promise((resolve, reject) => {
         const defaultOptions = {
-            resource_type: 'auto', // 'auto' allows Cloudinary to handle raw PDFs or image formats
+            resource_type: 'raw', // 'raw' is required for PDFs to preserve binary files in Cloudinary
             folder: 'invoices'
         };
 

@@ -153,3 +153,66 @@
   width: 16px;
   height: 16px;
 }
+
+/* Password Strength Meter & Constraints */
+.strength-meter-container {
+  margin-top: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.strength-bar-track {
+  height: 6px;
+  background-color: #e5e7eb;
+  border-radius: 99px;
+  overflow: hidden;
+  display: flex;
+  gap: 3px;
+}
+
+.strength-segment {
+  flex: 1;
+  height: 100%;
+  background-color: #e5e7eb;
+  transition: background-color 0.3s ease;
+}
+
+.strength-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: right;
+}
+
+.password-criteria-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem 0.5rem;
+  margin-top: 0.3rem;
+  font-size: 0.75rem;
+}
+
+.criterion-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #9ca3af;
+}
+
+.criterion-item.valid {
+  color: #059669;
+  font-weight: 600;
+}
+
+.forgot-password-link {
+  align-self: flex-end;
+  font-size: 0.8rem;
+  color: var(--primary);
+  cursor: pointer;
+  margin-top: -0.25rem;
+  font-weight: 500;
+}
+
+.forgot-password-link:hover {
+  text-decoration: underline;
+}

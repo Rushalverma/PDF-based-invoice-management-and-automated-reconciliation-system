@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const bankStatementController = require('../controller/bankStatementController');
 const authMiddleware = require('../middleware/authMiddleware');
+const { checkRole } = require('../middleware/rbacMiddleware');
 const { uploadDirs } = require('../config/env');
 
 const uploadFolder = uploadDirs.bankStatements;
@@ -34,9 +35,9 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({ storage, fileFilter });
 const router = express.Router();
 
-router.post('/upload', authMiddleware, upload.single('statementCsv'), bankStatementController.uploadStatementGroup);
+router.post('/upload', authMiddleware, checkRole(['admin', 'accountant']), upload.single('statementCsv'), bankStatementController.uploadStatementGroup);
 router.get('/groups', authMiddleware, bankStatementController.getStatementGroups);
 router.get('/groups/:id', authMiddleware, bankStatementController.getStatementGroupById);
-router.delete('/groups/:id', authMiddleware, bankStatementController.deleteStatementGroup);
+router.delete('/groups/:id', authMiddleware, checkRole(['admin', 'accountant']), bankStatementController.deleteStatementGroup);
 
 module.exports = router;

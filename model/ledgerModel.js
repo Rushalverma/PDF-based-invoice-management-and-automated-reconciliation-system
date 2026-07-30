@@ -109,9 +109,14 @@ class LedgerModel {
     static async addRecords(ledgerId, ledgerFileId, records) {
         const insertedIds = [];
         for (const record of records) {
-            // Skip invalid records (like empty continuation pages)
-            if (!record.transaction_date) continue;
+            // Skip completely empty records (e.g. blank pages)
+            if (!record.transaction_id && !record.amount && !record.description) continue;
             
+            // Default transaction_date to today if missing so records are not silently dropped
+            if (!record.transaction_date) {
+                record.transaction_date = new Date().toISOString().split('T')[0];
+            }
+
             const id = await this.addRecord(ledgerId, ledgerFileId, record);
             insertedIds.push(id);
         }

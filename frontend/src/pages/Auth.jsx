@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import zxcvbn from 'zxcvbn';
 import useAuthStore from '../store/useAuthStore';
 import { apiUrl } from '../utils/api';
-
 import './Auth.css';
 
 const BarChartIcon = () => (
@@ -10,15 +10,14 @@ const BarChartIcon = () => (
 );
 
 function Auth() {
-
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const login = useAuthStore((state) => state.login);
-
 
   const [searchParams, setSearchParams] = useSearchParams();
   const mode = searchParams.get('mode');
 
-  const [isLogin, setIsLogin] = useState(mode !== 'signup');
+  const [isLogin, setIsLogin] = useState(mode !== 'signup' && mode !== 'forgot');
+  const [isForgot, setIsForgot] = useState(mode === 'forgot');
 
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -27,65 +26,123 @@ function Auth() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [generatedResetToken, setGeneratedResetToken] = useState(null);
 
   const navigate = useNavigate();
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/dashboard', { replace: true }); // ? The user should not be able to come to this page even if they click undo button 
+      navigate('/dashboard', { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
   useEffect(() => {
-    // ? If there is no mode then we manually set it to login
-    if (!mode)
+    if (!mode) {
       setSearchParams({ mode: "login" });
-    else
+      setIsLogin(true);
+      setIsForgot(false);
+    } else if (mode === 'forgot') {
+      setIsForgot(true);
+      setIsLogin(false);
+    } else {
+      setIsForgot(false);
       setIsLogin(mode !== 'signup');
+    }
   }, [mode]);
 
+  // Evaluate password strength using zxcvbn on Sign Up
+  const strengthResult = useMemo(() => {
+    if (!password) return { score: 0, label: 'Very Weak', color: '#e5e7eb' };
+    const res = zxcvbn(password);
+    const labels = ['Very Weak', 'Weak', 'Fair', 'Strong', 'Very Strong'];
+    const colors = ['#ef4444', '#f97316', '#eab308', '#3b82f6', '#059669'];
+    return {
+      score: res.score,
+      label: labels[res.score],
+      color: colors[res.score]
+    };
+  }, [password]);
+
+  // Real-time password criteria checklist
+  const criteria = useMemo(() => {
+    return {
+      length: password.length >= 8,
+      uppercase: /[A-Z]/.test(password),
+      number: /[0-9]/.test(password),
+      special: /[^A-Za-z0-9]/.test(password)
+    };
+  }, [password]);
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setIsLoading(true);
+    setGeneratedResetToken(null);
+
+    try {
+      const response = await fetch(apiUrl('/auth/forgot-password'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to request password reset');
+      }
+
+      setSuccess(data.message);
+      if (data.resetToken) {
+        setGeneratedResetToken(data.resetToken);
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
-    setIsLoading(true);
 
+    // Enforce password criteria on frontend Sign Up
+    if (!isLogin && (!criteria.length || !criteria.uppercase || !criteria.number || !criteria.special)) {
+      setError('Password does not meet all security constraints.');
+      return;
+    }
+
+    setIsLoading(true);
     const endpoint = isLogin ? '/auth/login' : '/auth/register';
 
     try {
-      // ! Hard coded backend port
       const response = await fetch(apiUrl(endpoint), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(isLogin ? { email, password } : { username, email, password })
+        body: JSON.stringify(isLogin ? { email, password } : { username, email, password }),
+        credentials: 'include'
       });
 
       const data = await response.json();
-
-      console.log(data);
 
       if (!response.ok) {
         throw new Error(data.message || 'Something went wrong');
       }
 
       if (isLogin) {
-        // Success Login
-        login(data.user, data.token); // ? This is from zustand and token is being saved in localStorage by default
+        login(data.user, data.token);
         setSuccess('Login successful! Redirecting...');
-
-
         setTimeout(() => {
-          navigate('/dashboard'); // ? Takes some time for no reason 
+          navigate('/dashboard');
         }, 1000);
-
       } else {
-        // Success Registration
-
         setSuccess('Registration successful! Please log in.');
         setTimeout(() => {
-          setIsLogin(true); // Switch view to login directly
-          setPassword(''); // clear password for safety
+          setSearchParams({ mode: 'login' });
+          setPassword('');
           setSuccess(null);
         }, 2000);
       }
@@ -107,66 +164,156 @@ function Auth() {
 
       <div className="auth-card">
         <div className="auth-header">
-          <h2>{isLogin ? 'Welcome Back' : 'Create an Account'}</h2>
-          <p>{isLogin ? 'Log in to manage your automated reconciliations.' : 'Automate your financial processing today.'}</p>
+          <h2>{isForgot ? 'Forgot Password' : isLogin ? 'Welcome Back' : 'Create an Account'}</h2>
+          <p>
+            {isForgot
+              ? 'Enter your account email to receive a password reset link.'
+              : isLogin
+              ? 'Log in to manage your automated reconciliations.'
+              : 'Automate your financial processing today.'}
+          </p>
         </div>
 
         {error && <div className="error-message">{error}</div>}
         {success && <div className="success-message">{success}</div>}
 
-        <form className="auth-form" onSubmit={handleSubmit}>
-          {!isLogin && (
+        {isForgot ? (
+          <form className="auth-form" onSubmit={handleForgotPassword}>
             <div className="form-group">
-              <label>Username</label>
+              <label>Email Address</label>
               <input
-                type="text"
-                placeholder="Enter Username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required={!isLogin}
+                type="email"
+                placeholder="Enter Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
               />
             </div>
-          )}
 
-          <div className="form-group">
-            <label>Email Address</label>
-            <input
-              type="email"
-              placeholder="Enter Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
+            {generatedResetToken && (
+              <div style={{ marginTop: '0.5rem', background: '#f8fafc', padding: '0.75rem', borderRadius: '8px', fontSize: '0.85rem' }}>
+                <p style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Password Reset Token Generated:</p>
+                <code style={{ wordBreak: 'break-all', color: '#2563eb' }}>{generatedResetToken}</code>
+                <div style={{ marginTop: '0.5rem' }}>
+                  <Link
+                    to={`/reset-password?token=${generatedResetToken}`}
+                    style={{ color: 'var(--primary)', fontWeight: 600, fontSize: '0.85rem' }}
+                  >
+                    Click here to Reset Password →
+                  </Link>
+                </div>
+              </div>
+            )}
 
-          <div className="form-group">
-            <label>Password</label>
-            <input
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength="6"
-            />
-          </div>
+            <button type="submit" className="btn-auth-submit" disabled={isLoading}>
+              {isLoading ? 'Sending...' : 'Send Reset Link'}
+            </button>
+          </form>
+        ) : (
+          <form className="auth-form" onSubmit={handleSubmit}>
+            {!isLogin && (
+              <div className="form-group">
+                <label>Username</label>
+                <input
+                  type="text"
+                  placeholder="Enter Username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required={!isLogin}
+                />
+              </div>
+            )}
 
-          <button type="submit" className="btn-auth-submit" disabled={isLoading}>
-            {isLoading ? 'Processing...' : isLogin ? 'Sign In' : 'Sign Up'}
-          </button>
-        </form>
+            <div className="form-group">
+              <label>Email Address</label>
+              <input
+                type="email"
+                placeholder="Enter Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Password</label>
+              <input
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+
+              {!isLogin && password && (
+                <div className="strength-meter-container">
+                  <div className="strength-bar-track">
+                    {[0, 1, 2, 3, 4].map((level) => (
+                      <div
+                        key={level}
+                        className="strength-segment"
+                        style={{
+                          backgroundColor: level <= strengthResult.score ? strengthResult.color : '#e5e7eb'
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <span className="strength-label" style={{ color: strengthResult.color }}>
+                    Strength: {strengthResult.label}
+                  </span>
+                </div>
+              )}
+
+              {!isLogin && (
+                <div className="password-criteria-list">
+                  <div className={`criterion-item ${criteria.length ? 'valid' : ''}`}>
+                    <span>{criteria.length ? '✓' : '○'}</span> 8+ Characters
+                  </div>
+                  <div className={`criterion-item ${criteria.uppercase ? 'valid' : ''}`}>
+                    <span>{criteria.uppercase ? '✓' : '○'}</span> 1 Upper (A-Z)
+                  </div>
+                  <div className={`criterion-item ${criteria.number ? 'valid' : ''}`}>
+                    <span>{criteria.number ? '✓' : '○'}</span> 1 Number (0-9)
+                  </div>
+                  <div className={`criterion-item ${criteria.special ? 'valid' : ''}`}>
+                    <span>{criteria.special ? '✓' : '○'}</span> 1 Special (!@#)
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {isLogin && (
+              <span
+                className="forgot-password-link"
+                onClick={() => setSearchParams({ mode: 'forgot' })}
+              >
+                Forgot password?
+              </span>
+            )}
+
+            <button type="submit" className="btn-auth-submit" disabled={isLoading}>
+              {isLoading ? 'Processing...' : isLogin ? 'Sign In' : 'Sign Up'}
+            </button>
+          </form>
+        )}
 
         <div className="auth-toggle">
-          {isLogin ? "Don't have an account?" : "Already have an account?"}
-          <span onClick={() => {
-            const newMode = isLogin ? 'signup' : 'login';
-            setSearchParams({ mode: newMode });
-
-            setError(null);
-            setSuccess(null);
-          }}>
-            {isLogin ? 'Sign Up' : 'Log In'}
-          </span>
+          {isForgot ? (
+            <>
+              Remember your password?
+              <span onClick={() => setSearchParams({ mode: 'login' })}>Sign In</span>
+            </>
+          ) : isLogin ? (
+            <>
+              Don't have an account?
+              <span onClick={() => setSearchParams({ mode: 'signup' })}>Sign Up</span>
+            </>
+          ) : (
+            <>
+              Already have an account?
+              <span onClick={() => setSearchParams({ mode: 'login' })}>Log In</span>
+            </>
+          )}
         </div>
       </div>
     </div>

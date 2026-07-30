@@ -40,6 +40,54 @@ class UserModel {
         );
         return result.insertId;
     }
+
+    static async setResetToken(userId, token, expiresAt) {
+        const [result] = await db.execute(
+            'UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?',
+            [token, expiresAt, userId]
+        );
+        return result.affectedRows;
+    }
+
+    static async findByResetToken(token) {
+        const [rows] = await db.execute(
+            'SELECT * FROM users WHERE reset_token = ? AND reset_token_expires > NOW()',
+            [token]
+        );
+        return rows[0] || null;
+    }
+
+    static async updatePassword(userId, passwordHash) {
+        const [result] = await db.execute(
+            'UPDATE users SET password_hash = ?, reset_token = NULL, reset_token_expires = NULL WHERE id = ?',
+            [passwordHash, userId]
+        );
+        return result.affectedRows;
+    }
+
+    static async setRefreshToken(userId, refreshToken) {
+        const [result] = await db.execute(
+            'UPDATE users SET refresh_token = ? WHERE id = ?',
+            [refreshToken, userId]
+        );
+        return result.affectedRows;
+    }
+
+    static async findByRefreshToken(refreshToken) {
+        const [rows] = await db.execute(
+            'SELECT * FROM users WHERE refresh_token = ?',
+            [refreshToken]
+        );
+        return rows[0] || null;
+    }
+
+    static async clearRefreshToken(userId) {
+        const [result] = await db.execute(
+            'UPDATE users SET refresh_token = NULL WHERE id = ?',
+            [userId]
+        );
+        return result.affectedRows;
+    }
 }
 
 module.exports = UserModel;

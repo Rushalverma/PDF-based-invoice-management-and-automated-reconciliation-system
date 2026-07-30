@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
 const fs = require('fs');
 const path = require('path');
@@ -16,6 +17,7 @@ const db = require('./config/db');
 
 const ledgerRoute = require('./routes/ledgerRoute');
 const reconciliationRoute = require('./routes/reconciliationRoute');
+const teamRoute = require('./routes/teamRoute');
 
 
 const app = express();
@@ -43,6 +45,7 @@ app.use(cors({
     credentials: true
 }));
 app.use(express.json());
+app.use(cookieParser());
 app.use(morgan('dev'));
 app.use('/uploads', express.static(uploadsRoot));
 
@@ -64,6 +67,7 @@ app.use('/api/v1/ledger', ledgerRoute);
 app.use('/api/v1/bank-statement', bankStatementRoute);
 app.use('/api/v1/stats', statsRoute);
 app.use('/api/v1/reconciliation', reconciliationRoute);
+app.use('/api/v1/team', teamRoute);
 
 // 404 handler
 app.use((req, res, next) => {

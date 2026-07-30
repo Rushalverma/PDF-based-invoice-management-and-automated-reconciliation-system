@@ -4,6 +4,10 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     last_active_business_id INT DEFAULT NULL,
+    reset_token VARCHAR(255) DEFAULT NULL,
+    reset_token_expires DATETIME DEFAULT NULL,
+    refresh_token VARCHAR(500) DEFAULT NULL,
+    is_system_admin BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -168,4 +172,47 @@ CREATE TABLE IF NOT EXISTS reconciliation_results (
 );
 
 -- Run this once if the legacy 'name' column still exists in your DB:
--- ALTER TABLE ledgers MODIFY COLUMN name VARCHAR(255) NULL DEFAULT NULL;
+-- ALTER TABLE ledgers MODIFY COLUMN name VARCHAR(255) NULL DEFAULT NULL;
+
+ALTER TABLE users ADD COLUMN reset_token VARCHAR(255) DEFAULT NULL;
+ALTER TABLE users ADD COLUMN reset_token_expires DATETIME DEFAULT NULL;
+ALTER TABLE users ADD COLUMN refresh_token VARCHAR(500) DEFAULT NULL;
+ALTER TABLE users ADD COLUMN is_system_admin BOOLEAN DEFAULT FALSE;
+
+CREATE TABLE IF NOT EXISTS user_business_roles (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    business_id INT NOT NULL,
+    role ENUM('admin', 'accountant', 'viewer') NOT NULL DEFAULT 'accountant',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    FOREIGN KEY (business_id) REFERENCES businesses (id) ON DELETE CASCADE,
+    UNIQUE KEY unique_user_business (user_id, business_id)
+);
+
+CREATE TABLE IF NOT EXISTS invitations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    business_id INT NOT NULL,
+    inviter_user_id INT NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    role ENUM('accountant', 'viewer') NOT NULL DEFAULT 'viewer',
+    token VARCHAR(255) UNIQUE NOT NULL,
+    expires_at DATETIME NOT NULL,
+    status ENUM('pending', 'accepted', 'expired') DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (business_id) REFERENCES businesses (id) ON DELETE CASCADE,
+    FOREIGN KEY (inviter_user_id) REFERENCES users (id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    business_id INT DEFAULT NULL,
+    user_id INT NOT NULL,
+    action VARCHAR(100) NOT NULL,
+    entity_type VARCHAR(100) NOT NULL,
+    entity_id VARCHAR(255) DEFAULT NULL,
+    details JSON DEFAULT NULL,
+    ip_address VARCHAR(45) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+);
