@@ -155,7 +155,17 @@ const parseCsvRows = (csvText) => {
     throw new Error(`CSV parse error: ${errorMessages}`);
   }
 
-  return parsed.data.map((row, index) => normalizeTransactionRecord(row, index));
+  const validRecords = [];
+  parsed.data.forEach((row, index) => {
+    const rec = normalizeTransactionRecord(row, index);
+    // Ignore unparsed/footer rows missing both transaction_id and valid amount/description
+    if (!rec.transaction_id && (!rec.amount || Number(rec.amount) === 0) && (!rec.description || rec.description === 'Bank statement row')) {
+      return;
+    }
+    validRecords.push({ ...rec, index_number: validRecords.length + 1 });
+  });
+
+  return validRecords;
 };
 
 const uploadStatementGroup = async (req, res) => {

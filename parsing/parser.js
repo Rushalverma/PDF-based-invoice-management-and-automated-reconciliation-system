@@ -384,13 +384,66 @@ async function parsePdf(pdfInput) {
             allInvoiceData.push(invoiceData);
         }
 
-        console.log(`\n[Parser] Finished processing PDF input. Extracted ${allInvoiceData.length} record(s).`);
-        return allInvoiceData;
+        const consolidatedData = consolidateInvoiceData(allInvoiceData);
+        console.log(`\n[Parser] Finished processing PDF input. Consolidated into ${consolidatedData.length} clean record(s).`);
+        return consolidatedData;
 
     } catch (error) {
         console.error(`[Parser] Error occurred while parsing the PDF:`, error);
         throw error;
     }
+}
+
+/**
+ * Consolidates page-by-page extractions from a PDF document into clean invoice records.
+ * Prevents creation of unparsed duplicate entries across multi-page invoices.
+ */
+function consolidateInvoiceData(pageRecords) {
+    if (!pageRecords || pageRecords.length === 0) return [];
+
+    if (pageRecords.length === 1) {
+        const r = pageRecords[0];
+        if (!r.transaction_id && (!r.amount || Number(r.amount) === 0) && !r.description) {
+            return [];
+        }
+        return [r];
+    }
+
+    let transaction_id = null;
+    let transaction_date = null;
+    let amount = null;
+    let transaction_type = 'debit';
+    const descSet = new Set();
+
+    for (const page of pageRecords) {
+        if (!transaction_id && page.transaction_id) {
+            transaction_id = page.transaction_id;
+        }
+        if (!transaction_date && page.transaction_date) {
+            transaction_date = page.transaction_date;
+        }
+        if ((!amount || Number(amount) === 0) && page.amount) {
+            amount = page.amount;
+        }
+        if (page.transaction_type && page.transaction_type !== 'debit') {
+            transaction_type = page.transaction_type;
+        }
+        if (page.description) {
+            descSet.add(page.description);
+        }
+    }
+
+    if (!transaction_id && (!amount || Number(amount) === 0) && descSet.size === 0) {
+        return [];
+    }
+
+    return [{
+        transaction_id,
+        transaction_date,
+        amount: amount || 0.00,
+        transaction_type,
+        description: Array.from(descSet).join(', ') || null
+    }];
 }
 
 /**
