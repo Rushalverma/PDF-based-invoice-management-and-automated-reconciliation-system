@@ -144,6 +144,15 @@ class LedgerModel {
         );
         return rows;
     }
+
+    // Delete a single ledger record by ID
+    static async deleteRecord(recordId) {
+        const [result] = await db.execute(
+            'DELETE FROM ledger_records WHERE id = ?',
+            [recordId]
+        );
+        return result.affectedRows;
+    }
 }
 
 module.exports = LedgerModel;

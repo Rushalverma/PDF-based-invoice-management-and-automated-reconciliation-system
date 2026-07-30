@@ -57,6 +57,29 @@ export const LedgerCollectionPage = () => {
     fetchLedgers();
   }, [token, showCreateModalOverlay, user?.lastActiveBusinessId]);
 
+  const handleDeleteLedger = async (e, ledgerId) => {
+    e.stopPropagation();
+    if (!window.confirm("Are you sure you want to delete this ledger and all its entries?")) return;
+
+    try {
+      const response = await fetch(apiUrl(`/ledger/${ledgerId}`), {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-business-id': user?.lastActiveBusinessId || ''
+        }
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Failed to delete ledger');
+      }
+      setLedgers(prev => prev.filter(l => l.id !== ledgerId));
+    } catch (err) {
+      console.error('Error deleting ledger:', err);
+      alert(err.message || 'Could not delete ledger');
+    }
+  };
+
   return (
     <>
       {showCreateModalOverlay && (
@@ -83,6 +106,7 @@ export const LedgerCollectionPage = () => {
                 <th>Bank Account</th>
                 <th>Entries</th>
                 <th>Created At</th>
+                <th style={{ width: '100px', textAlign: 'center' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -97,6 +121,24 @@ export const LedgerCollectionPage = () => {
                   <td className="cell-bank">{ledger.bankAccount}</td>
                   <td className="cell-entries">{ledger.entries}</td>
                   <td>{ledger.createdAt}</td>
+                  <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                    <button
+                      className="btn-delete-ledger"
+                      onClick={(e) => handleDeleteLedger(e, ledger.id)}
+                      style={{
+                        backgroundColor: '#ef4444',
+                        color: '#ffffff',
+                        border: 'none',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: '500'
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -105,6 +147,5 @@ export const LedgerCollectionPage = () => {
       </div>
     </>
   );
-
 };
 

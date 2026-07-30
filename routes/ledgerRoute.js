@@ -52,6 +52,9 @@ router.get('/:id/records', authMiddleware, ledgerController.getLedgerRecords);
 // Update a single ledger record field
 router.put('/record/:recordId', authMiddleware, checkRole(['admin', 'accountant']), ledgerController.updateLedgerRecord);
 
+// Delete a single ledger record
+router.delete('/record/:recordId', authMiddleware, checkRole(['admin', 'accountant']), ledgerController.deleteLedgerRecord);
+
 // Delete a ledger
 router.delete('/:id', authMiddleware, checkRole(['admin', 'accountant']), ledgerController.deleteLedger);
 

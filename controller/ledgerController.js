@@ -285,6 +285,29 @@ const updateLedgerRecord = async (req, res) => {
     }
 };
 
+// ─── DELETE /api/v1/ledger/record/:recordId ──────────────────────────────────
+const deleteLedgerRecord = async (req, res) => {
+    try {
+        const { recordId } = req.params;
+        const affectedRows = await LedgerModel.deleteRecord(recordId);
+
+        if (affectedRows === 0) {
+            return res.status(404).json({ success: false, message: 'Ledger record not found' });
+        }
+
+        await logAudit(req, {
+            action: 'DELETE_INVOICE_RECORD',
+            entityType: 'ledger_record',
+            entityId: recordId
+        });
+
+        res.status(200).json({ success: true, message: 'Ledger record deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting ledger record:', error);
+        res.status(500).json({ success: false, message: 'Server error while deleting record' });
+    }
+};
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function getMonthName(monthNum) {
     const months = ['January', 'February', 'March', 'April', 'May', 'June',
@@ -307,5 +330,6 @@ module.exports = {
     getLedgerFiles,
     getLedgerRecords,
     updateLedgerRecord,
+    deleteLedgerRecord,
     deleteLedger
 };

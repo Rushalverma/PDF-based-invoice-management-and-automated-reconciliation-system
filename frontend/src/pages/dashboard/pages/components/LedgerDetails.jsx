@@ -71,6 +71,31 @@ export function LedgerDetails() {
         }
     };
 
+    /* ── handleDeleteRecord — delete individual invoice entry ── */
+    const handleDeleteRecord = async (recordId) => {
+        if (!window.confirm("Are you sure you want to delete this invoice entry?")) return;
+
+        setTransactions(prev => prev.filter(txn => txn.id !== recordId));
+
+        if (!token) return;
+        try {
+            const response = await fetch(apiUrl(`/ledger/record/${recordId}`), {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                console.error("Failed to delete record:", data.message);
+                alert(data.message || "Failed to delete record");
+            }
+        } catch (err) {
+            console.error("Failed to delete transaction record", err);
+            alert("Error deleting transaction record");
+        }
+    };
+
     /* ── handleAddRow — insert blank editable row ── */
     const handleAddRow = () => {
         const newRow = {
@@ -206,12 +231,13 @@ export function LedgerDetails() {
                                     <th style={{ width: '120px' }}>Credit</th>
                                     <th>Description</th>
                                     <th>File Name</th>
+                                    <th style={{ width: '80px', textAlign: 'center' }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {transactions.length === 0 ? (
                                     <tr>
-                                        <td colSpan={8} style={{ textAlign: 'center', padding: '32px', color: '#94a3b8' }}>
+                                        <td colSpan={9} style={{ textAlign: 'center', padding: '32px', color: '#94a3b8' }}>
                                             No records found. Add a new entry or upload an invoice.
                                         </td>
                                     </tr>
@@ -226,6 +252,25 @@ export function LedgerDetails() {
                                         <td>{txn.credit || '0.00'}</td>
                                         <td>{txn.description || '-'}</td>
                                         <td>{txn.fileName || '-'}</td>
+                                        <td style={{ textAlign: 'center' }}>
+                                            <button
+                                                type="button"
+                                                className="btn-delete-record"
+                                                onClick={() => handleDeleteRecord(txn.id)}
+                                                style={{
+                                                    backgroundColor: '#ef4444',
+                                                    color: '#ffffff',
+                                                    border: 'none',
+                                                    padding: '5px 10px',
+                                                    borderRadius: '5px',
+                                                    cursor: 'pointer',
+                                                    fontSize: '12px',
+                                                    fontWeight: '500'
+                                                }}
+                                            >
+                                                Delete
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
