@@ -10,6 +10,7 @@ export const BankStatementsPage = () => {
   const { showCreateModalOverlay, setShowCreateModalOverlay } = useOutletContext();
   const navigate = useNavigate();
   const token = useAuthStore(state => state.token);
+  const user = useAuthStore(state => state.user);
   const [statements, setStatements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -18,9 +19,11 @@ export const BankStatementsPage = () => {
     try {
       setLoading(true);
       setError('');
-      const response = await axios.get(apiUrl('/bank-statement/groups'), {
+      const activeBizId = user?.lastActiveBusinessId || '';
+      const response = await axios.get(apiUrl(`/bank-statement/groups?businessId=${activeBizId}`), {
         headers: {
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
+          'x-business-id': activeBizId
         }
       });
       setStatements(response.data.groups || []);
@@ -35,7 +38,7 @@ export const BankStatementsPage = () => {
 
   useEffect(() => {
     fetchStatements();
-  }, []);
+  }, [token, user?.lastActiveBusinessId]);
 
   const handleUploadSuccess = (newStatement) => {
     fetchStatements(); // Refresh the list

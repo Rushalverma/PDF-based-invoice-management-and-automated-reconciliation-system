@@ -14,6 +14,7 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
 export function CreateBankStatementGroupModal({ isOpen, onClose, onUploadSuccess }) {
   const token = useAuthStore(state => state.token);
+  const user = useAuthStore(state => state.user);
   const [formData, setFormData] = useState({
     name: '',
     month: months[new Date().getMonth()],
@@ -32,20 +33,22 @@ export function CreateBankStatementGroupModal({ isOpen, onClose, onUploadSuccess
       try {
         const response = await axios.get(apiUrl('/settings/data'), {
           headers: {
-            Authorization: `Bearer ${token}`
+            Authorization: `Bearer ${token}`,
+            'x-business-id': user?.lastActiveBusinessId || ''
           }
         });
-        console.log('Settings data response:', response.data);
         const accounts = response.data.bankAccounts || [];
-        console.log('Bank accounts found:', accounts);
-        setBankAccounts(accounts);
+        const activeAccounts = user?.lastActiveBusinessId
+          ? accounts.filter(acc => Number(acc.business_id) === Number(user.lastActiveBusinessId))
+          : accounts;
+        setBankAccounts(activeAccounts);
       } catch (err) {
         console.error('Error fetching bank accounts:', err);
         setBankAccounts([]);
       }
     };
-    fetchBankAccounts();
-  }, []);
+    if (isOpen && token) fetchBankAccounts();
+  }, [isOpen, token, user?.lastActiveBusinessId]);
 
   if (!isOpen) return null;
 
@@ -89,7 +92,8 @@ export function CreateBankStatementGroupModal({ isOpen, onClose, onUploadSuccess
       const response = await axios.post(apiUrl('/bank-statement/upload'), formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
+          'x-business-id': user?.lastActiveBusinessId || ''
         }
       });
 
@@ -123,7 +127,7 @@ export function CreateBankStatementGroupModal({ isOpen, onClose, onUploadSuccess
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
 
         <div className="modal-header">
-          <h2>Create New Statement Group</h2>
+          <h2>Create New Statement Group {user?.lastActiveBusinessName ? `(${user.lastActiveBusinessName})` : ''}</h2>
           <button className="btn-close" onClick={onClose} disabled={loading}>&times;</button>
         </div>
 

@@ -20,6 +20,22 @@ class AccountModel {
         return rows;
     }
 
+    static async findByBusinessId(businessId) {
+        const [rows] = await db.execute(
+            'SELECT * FROM bank_accounts WHERE business_id = ?',
+            [businessId]
+        );
+        return rows;
+    }
+
+    static async findByIdAndBusinessId(accountId, businessId) {
+        const [rows] = await db.execute(
+            'SELECT * FROM bank_accounts WHERE id = ? AND business_id = ?',
+            [accountId, businessId]
+        );
+        return rows[0] || null;
+    }
+
     static async delete(id, userId) {
         // Must ensure the user deleting the account actually owns the business it belongs to
         const [result] = await db.execute(

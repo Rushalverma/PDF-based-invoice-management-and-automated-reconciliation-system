@@ -1,9 +1,11 @@
 const path = require('path');
 const LedgerModel = require('../model/ledgerModel');
 const BusinessModel = require('../model/businessModel');
+const AccountModel = require('../model/accountModel');
 const { parsePdf } = require('../parsing/parser');
 const { uploadToCloudinary } = require('../config/cloudinary');
 const { logAudit } = require('../utils/auditLogger');
+const { getActiveBusinessId } = require('../utils/businessHelper');
 
 // Helper to extract userId consistently (JWT payload uses `userId`)
 const getUserId = (req) => req.user.userId || req.user.id;
@@ -12,19 +14,15 @@ const getUserId = (req) => req.user.userId || req.user.id;
 // Returns all ledgers for the logged-in user's first (or active) business.
 const getLedgers = async (req, res) => {
     try {
-        const userId = getUserId(req);
+        const activeBusinessId = await getActiveBusinessId(req);
 
-        const businesses = await BusinessModel.findByUserId(userId);
-
-        if (!businesses || businesses.length === 0) {
+        if (!activeBusinessId) {
             return res.status(200).json({
                 success: true,
                 data: [],
-                message: 'No businesses found for this user'
+                message: 'No active business found for this user'
             });
         }
-
-        const activeBusinessId = req.query.businessId || businesses[0].id;
 
         const ledgers = await LedgerModel.findByBusinessId(activeBusinessId);
 
@@ -77,6 +75,23 @@ const createLedger = async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: 'Missing required fields: bankAccountId, targetMonth, targetYear'
+            });
+        }
+
+        const activeBusinessId = await getActiveBusinessId(req);
+        if (!activeBusinessId) {
+            return res.status(400).json({
+                success: false,
+                message: 'No active business found. Please select or create a business in Settings.'
+            });
+        }
+
+        // Verify bank account belongs to active business
+        const bankAccount = await AccountModel.findByIdAndBusinessId(bankAccountId, activeBusinessId);
+        if (!bankAccount) {
+            return res.status(400).json({
+                success: false,
+                message: 'Selected bank account does not belong to your currently active business.'
             });
         }
 

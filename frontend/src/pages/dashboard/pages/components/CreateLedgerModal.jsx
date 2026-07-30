@@ -13,6 +13,7 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
 export function CreateLedgerModal({ isOpen, onClose }) {
   const token = useAuthStore(state => state.token);
+  const user = useAuthStore(state => state.user);
   const fileInputRef = useRef(null);
 
   // ── Form state ──────────────────────────────────────────────────────────────
@@ -39,11 +40,18 @@ export function CreateLedgerModal({ isOpen, onClose }) {
       setError(null);
       try {
         const res = await fetch(apiUrl('/settings/data'), {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'x-business-id': user?.lastActiveBusinessId || ''
+          }
         });
         if (!res.ok) throw new Error('Failed to load bank accounts');
         const data = await res.json();
-        setBankAccounts(data.bankAccounts || []);
+        const allAccounts = data.bankAccounts || [];
+        const activeAccounts = user?.lastActiveBusinessId
+          ? allAccounts.filter(acc => Number(acc.business_id) === Number(user.lastActiveBusinessId))
+          : allAccounts;
+        setBankAccounts(activeAccounts);
       } catch (err) {
         setError('Could not load bank accounts. Is the server running?');
       } finally {
@@ -52,7 +60,7 @@ export function CreateLedgerModal({ isOpen, onClose }) {
     };
 
     fetchAccounts();
-  }, [isOpen, token]);
+  }, [isOpen, token, user?.lastActiveBusinessId]);
 
   if (!isOpen) return null;
 
@@ -104,7 +112,8 @@ export function CreateLedgerModal({ isOpen, onClose }) {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'x-business-id': user?.lastActiveBusinessId || ''
         },
         body: JSON.stringify({
           bankAccountId: Number(formData.bankAccountId),
@@ -179,7 +188,7 @@ export function CreateLedgerModal({ isOpen, onClose }) {
 
         {/* Header */}
         <div className="modal-header">
-          <h2>Create New Ledger</h2>
+          <h2>Create New Ledger {user?.lastActiveBusinessName ? `(${user.lastActiveBusinessName})` : ''}</h2>
           <button className="btn-close" onClick={onClose} disabled={submitting}>&times;</button>
         </div>
 

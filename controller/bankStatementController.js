@@ -6,6 +6,8 @@
 const fs = require('fs');
 const Papa = require('papaparse');
 const db = require('../config/db');
+const AccountModel = require('../model/accountModel');
+const { getActiveBusinessId } = require('../utils/businessHelper');
 
 const normalizeKey = (key) => String(key || '').trim().toLowerCase().replace(/_/g, ' ');
 
@@ -172,6 +174,17 @@ const uploadStatementGroup = async (req, res) => {
       return res.status(400).json({ message: 'Invalid bankAccountId.' });
     }
 
+    const activeBusinessId = await getActiveBusinessId(req);
+    if (!activeBusinessId) {
+      return res.status(400).json({ message: 'No active business found for your account.' });
+    }
+
+    // Verify bank account belongs to active business
+    const bankAccount = await AccountModel.findByIdAndBusinessId(bankAccountIdNumber, activeBusinessId);
+    if (!bankAccount) {
+      return res.status(400).json({ message: 'Selected bank account does not belong to your currently active business.' });
+    }
+
     const [groupResult] = await db.execute(
       'INSERT INTO bank_statement_groups (bank_account_id, name, target_month, target_year) VALUES (?, ?, ?, ?)',
       [bankAccountIdNumber, name, parseInt(month, 10), parseInt(year, 10)]
@@ -230,6 +243,11 @@ const uploadStatementGroup = async (req, res) => {
 
 const getStatementGroups = async (req, res) => {
   try {
+    const activeBusinessId = await getActiveBusinessId(req);
+    if (!activeBusinessId) {
+      return res.status(200).json({ groups: [] });
+    }
+
     const [rows] = await db.execute(
       `SELECT g.id,
               g.bank_account_id,
@@ -243,7 +261,9 @@ const getStatementGroups = async (req, res) => {
               (SELECT COUNT(*) FROM bank_statement_records r WHERE r.bank_statement_group_id = g.id) AS entries
        FROM bank_statement_groups g
        JOIN bank_accounts b ON g.bank_account_id = b.id
-       ORDER BY g.created_at DESC`
+       WHERE b.business_id = ?
+       ORDER BY g.created_at DESC`,
+      [activeBusinessId]
     );
 
     const groups = rows.map((row) => ({

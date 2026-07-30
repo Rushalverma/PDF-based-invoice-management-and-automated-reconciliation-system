@@ -10,6 +10,7 @@ export const LedgerCollectionPage = () => {
   const { showCreateModalOverlay, setShowCreateModalOverlay } = useOutletContext();
   const navigate = useNavigate();
   const token = useAuthStore((state) => state.token);
+  const user = useAuthStore((state) => state.user);
 
   const [ledgers, setLedgers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,11 +28,13 @@ export const LedgerCollectionPage = () => {
           return;
         }
 
-        const response = await fetch(apiUrl('/ledger'), {
+        const activeBizId = user?.lastActiveBusinessId || '';
+        const response = await fetch(apiUrl(`/ledger?businessId=${activeBizId}`), {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'x-business-id': activeBizId
           }
         });
 
@@ -52,7 +55,7 @@ export const LedgerCollectionPage = () => {
     };
 
     fetchLedgers();
-  }, [token, showCreateModalOverlay]);
+  }, [token, showCreateModalOverlay, user?.lastActiveBusinessId]);
 
   return (
     <>
